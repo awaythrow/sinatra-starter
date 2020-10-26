@@ -2,6 +2,23 @@
 
 Opinionated tool for creating a Sinatra app with GitHub Actions CI and Weaveworks Flux CD.
 
+## Table of Contents
+   * [sinatra-starter](#sinatra-starter)
+      * [Getting Started](#getting-started)
+         * [Install developer tools](#install-developer-tools)
+            * [Automated install](#automated-install)
+            * [Manual setup](#manual-setup)
+         * [Setup Github](#setup-github)
+         * [Generate a new project](#generate-a-new-project)
+         * [Add a model and controller methods](#add-a-model-and-controller-methods)
+         * [Add some tests](#add-some-tests)
+         * [Push to Github](#push-to-github)
+      * [Continuously Deploy to Kubernetes](#continuously-deploy-to-kubernetes)
+         * [Setup Kubernetes cluster](#setup-kubernetes-cluster)
+         * [Bootstrap Flux and Helm-operator](#bootstrap-flux-and-helm-operator)
+         * [Continuously deliver a change](#continuously-deliver-a-change)
+
+Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc)
 
 ## Getting Started
 
