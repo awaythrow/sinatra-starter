@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:13.0
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+
+  sut:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+      APP_ENV: test
+    command: bin/run_tests.sh
+    depends_on:
+      - db

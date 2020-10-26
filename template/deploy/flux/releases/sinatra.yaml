@@ -1,0 +1,44 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: ${APP_NAME}
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    fluxcd.io/automated: "true"
+    # Uncomment this and specify a semver pattern to restrict
+    # tags automatically deployed by flux
+    # fluxcd.io/tag.chart-image: semver:~1
+spec:
+  releaseName: ${APP_NAME}
+  chart:
+    git: ${GIT_REPO}
+    ref: ${GIT_BRANCH}
+    path: deploy/charts/sinatra-app
+  values:
+    fullnameOverride: ${APP_NAME}
+    image:
+      repository: ${IMAGE_REPO}
+      tag: ${IMAGE_TAG}
+      pullPolicy: IfNotPresent
+    database:
+      host: postgres-postgresql
+      port: 5432
+      username: postgres
+      name: ${APP_NAME}-prod
+      password:
+        secretName: db-creds
+        secretKey: postgresql-password
+    ingress:
+      enabled: false
+      annotations: {}
+        # kubernetes.io/ingress.class: nginx
+        # kubernetes.io/tls-acme: "true"
+      hosts:
+        - host: ${APP_NAME}.local
+          paths:
+            - /
+      tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local

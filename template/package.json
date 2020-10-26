@@ -1,0 +1,32 @@
+{
+  "name": "senatra-example",
+  "version": "0.1.0",
+  "description": "Sinatra Example with CI/CD",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "bin/rspec",
+    "db.up": "docker-compose --file docker-compose.test.yml up -d db",
+    "db.down": "docker-compose --file docker-compose.test.yml down",
+    "db.reset": "bin/rake db:drop db:create db:migrate",
+    "db.init": "bin/rake db:create db:migrate",
+    "dev.serve": "npm run db.up && bin/rerun puma"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/awaythrow/sinatra-example.git"
+  },
+  "keywords": [
+    "sinatra",
+    "flux",
+    "helm",
+    "helmfile"
+  ],
+  "author": "TJ Miller <me@teejaded.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/awaythrow/sinatra-example/issues"
+  },
+  "homepage": "https://github.com/awaythrow/sinatra-example#readme"
+}

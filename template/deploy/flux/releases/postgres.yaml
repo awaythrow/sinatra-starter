@@ -1,0 +1,16 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: postgres
+  namespace: ${APP_NAMESPACE}
+  annotations:
+    fluxcd.io/automated: "false"
+spec:
+  releaseName: postgres
+  chart:
+    repository: https://charts.bitnami.com/bitnami
+    name: postgresql
+    version: 9.8.6
+  values:
+    existingSecret: db-creds

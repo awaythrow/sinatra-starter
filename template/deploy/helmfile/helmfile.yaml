@@ -1,0 +1,28 @@
+#
+# Use Helmfile to bootstrap flux to start auto-deploying our applications
+
+repositories:
+- name: fluxcd
+  url: https://charts.fluxcd.io
+
+releases:
+
+- name: flux
+  namespace: default
+  chart: fluxcd/flux
+  values:
+  - git:
+      url: ${GIT_REPO_SSH}
+      branch: ${GIT_BRANCH}
+      path: deploy/flux
+      ciSkip: true
+
+- name: helm-operator
+  namespace: default
+  chart: fluxcd/helm-operator
+  values:
+  - helm:
+      versions: v3
+    git:
+      ssh:
+        secretName: flux-git-deploy

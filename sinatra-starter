@@ -1,0 +1,190 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+PWD="$(pwd)"
+
+function usage {
+  echo "${1:-}"
+  cat <<-ENDHELP
+	Sinatra Starter Usage
+
+	  ${0} setup                                           Installs prerequisites. Note: requires MacOS see README.md
+
+	  ${0} new -a <name> -r <git_repo> [-n k8s_namespace]  Creates a new Sinatra app with name using git_repo for the remote origin
+
+ENDHELP
+  exit 0
+}
+
+function check_bins {
+	for bin_name in "$@"; do
+    if ! command -v $bin_name &> /dev/null; then
+      echo "$bin_name not found"
+      return 1
+    fi
+  done
+}
+
+function append_shrc {
+  printf "\n%s" "$1" >> ~/.bash_profile
+  if [ -f "$HOME/.zshrc" ]; then
+    printf "\n%s" "$1" >> ~/.zshrc
+  fi
+}
+
+function setup {
+  export HOMEBREW_NO_AUTO_UPDATE=1
+
+  if ! check_bins git gcc; then
+    xcode-select --install
+  fi
+
+  if ! check_bins brew; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+  fi
+
+  brew update
+
+  if ! brew list | grep openssl; then
+    brew install openssl
+  fi
+
+  if ! brew list | grep readline; then
+    brew install readline
+  fi
+
+  if ! check_bins envsubst; then
+    brew install gettext
+  fi
+
+  if ! check_bins docker docker-compose; then
+    brew install docker
+  fi
+
+  if ! check_bins asdf; then
+    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.0
+    # shellcheck disable=SC2016
+    append_shrc '\n. $HOME/.asdf/asdf.sh'
+  fi
+
+  # Import asdf plugins
+  asdf plugin-add nodejs https://github.com/asdf-vm/asdf-nodejs.git || true
+  asdf plugin-add ruby https://github.com/asdf-vm/asdf-ruby.git || true
+  asdf plugin-add minikube https://github.com/alvarobp/asdf-minikube.git || true
+  asdf plugin-add kubectl https://github.com/Banno/asdf-kubectl.git || true
+  asdf plugin-add helm https://github.com/Antiarchitect/asdf-helm.git || true
+  asdf plugin-add helmfile https://github.com/feniix/asdf-helmfile.git || true
+  asdf plugin-add fluxctl https://github.com/stefansedich/asdf-fluxctl || true
+
+  # Import the Node.js release team's OpenPGP keys to main keyring:
+  bash -c '${ASDF_DATA_DIR:=$HOME/.asdf}/plugins/nodejs/bin/import-release-team-keyring'
+
+  asdf install
+
+  cat <<-EOF
+
+	Setup complete.
+
+	  Please refresh your shell by opening a new window or sourcing the
+	  appropriate shell startup file.
+
+	  source ~/.bash_profile
+	  or
+	  source ~/.zshrc
+EOF
+  exit 0
+}
+
+function render {
+  envsubst < "$1" > "${OUTPUT_PATH}/${1}"
+}
+export -f render
+
+function render_sed {
+  sed "$2" < "$1" > "${OUTPUT_PATH}/${1}"
+}
+export -f render_sed
+
+function parse_opt {
+  while getopts "hb:r:a:n:" OPTION; do
+    case $OPTION in
+    h)
+      usage
+      ;;
+    b)
+      export GIT_BRANCH=$OPTARG
+      ;;
+    r)
+      export GIT_REPO=$OPTARG
+      ;;
+    a)
+      export APP_NAME=$OPTARG
+      export OUTPUT_PATH="${PWD}/${APP_NAME}"
+      if [ -d "$OUTPUT_PATH" ] || [ -f "$OUTPUT_PATH" ]; then
+        echo "Output path ${PWD}/${APP_NAME} already exists"
+        exit 1
+      fi
+      ;;
+    n)
+      export APP_NAMESPACE=$OPTARG
+      ;;
+    *)
+      usage "Incorrect options provided"
+      ;;
+    esac
+  done
+  [ -n "${APP_NAME:-}" ] || usage "-a <app_name> is required"
+  [ -n "${GIT_REPO:-}" ] || usage "-r <git_repo> is required"
+  [ -n "${GIT_BRANCH:-}" ] || export GIT_BRANCH="main"
+  [ -n "${APP_NAMESPACE:-}" ] || export APP_NAMESPACE="default"
+}
+export -f parse_opt
+
+function new_app() (
+  parse_opt "$@"
+  export GIT_REPO_SSH=$(echo $GIT_REPO | sed 's/https:\/\/github.com\//git@github.com:/')
+  export GIT_PATH=$(echo $GIT_REPO | sed 's/.*github\.com[:\/]*//' | sed 's/.git$//')
+  export IMAGE_REPO="ghcr.io/$GIT_PATH"
+  export IMAGE_TAG="$GIT_BRANCH"
+  export IMAGE_PATH="${IMAGE_REPO}"
+  export DATABASE_PASS="$(uuidgen)"
+
+  cd "$SCRIPTPATH"
+  cp -r template "$OUTPUT_PATH"
+  cp .tool-versions "$OUTPUT_PATH"
+
+  cd template
+  render_sed ".github/workflows/docker-publish.yml" "s/IMAGE_NAME: ####REPLACE_ME####/IMAGE_NAME: ${APP_NAME}/"
+  render_sed ".env" "s/DATABASE_PASS=####REPLACE_ME####/DATABASE_PASS=${DATABASE_PASS}/"
+  render "deploy/helmfile/helmfile.yaml"
+  render "deploy/flux/namespaces/ns.yaml"
+  render "deploy/flux/releases/postgres.yaml"
+  render "deploy/flux/releases/sinatra.yaml"
+  render "deploy/flux/releases/sinatra.yaml"
+  render "README.md"
+
+  cd "$OUTPUT_PATH"
+  git init
+  git add -A
+  git commit -m 'Initial commmit'
+  git branch -M "$GIT_BRANCH"
+  git remote add origin "$GIT_REPO"
+)
+
+function main {
+  if [ "${1:-}" == "setup" ]; then
+    setup
+  fi
+
+  if [ "${1:-}" == "new" ]; then
+    check_bins envsubst uuidgen sed git || exit 1
+    new_app "${@:2}"
+    exit 0
+  fi
+
+  usage
+}
+
+main "$@"

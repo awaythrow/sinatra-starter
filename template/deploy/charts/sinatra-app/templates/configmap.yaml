@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sinatra-app.fullname" . }}
+  labels:
+    {{- include "sinatra-app.labels" . | nindent 4 }}
+data:
+  DATABASE_HOST: {{ .Values.database.host }}
+  DATABASE_PORT: {{ .Values.database.port | quote }}
+  DATABASE_USER: {{ .Values.database.username }}
+  DATABASE_NAME: {{ .Values.database.name }}
+  {{- with .Values.customEnv }}
+  {{- . | toYaml | nindent 2 }}
+  {{- end }}

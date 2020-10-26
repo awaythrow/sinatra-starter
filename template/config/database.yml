@@ -1,0 +1,20 @@
+common: &common
+  adapter: postgresql
+  host: <%= ENV['DATABASE_HOST'] %>
+  port: <%= ENV['DATABASE_PORT'] %>
+  encoding: <%= ENV['DATABASE_ENCODING'].presence || 'unicode' %>
+  database: <%= ENV['DATABASE_NAME'] %>
+  pool: <%= ENV['DATABASE_POOL'].presence || 2 %>
+  username: <%= ENV['DATABASE_USER'] %>
+  password: <%= ENV['DATABASE_PASS'] %>
+
+
+test:
+  <<: *common
+  database: sinatra-test
+
+development:
+  <<: *common
+
+production:
+  <<: *common

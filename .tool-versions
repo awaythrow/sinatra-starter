@@ -1,0 +1,7 @@
+ruby 2.7.2
+helmfile 0.131.0
+helm 3.3.4
+minikube 1.14.1
+kubectl 1.19.3
+nodejs 15.0.1
+fluxctl 1.21.0
